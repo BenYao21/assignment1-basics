@@ -2,7 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+#
 
+./tests/_pycache/*
+./cs336_basics.egg-info/*
+./data/*
 # C extensions
 *.so
 
