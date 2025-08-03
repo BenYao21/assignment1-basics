@@ -1,5 +1,5 @@
 from __future__ import annotations
-from cs336_basics.train_bpe import *
+from cs336_basics.train_bpe import train_bpe
 
 import os
 from typing import IO, Any, BinaryIO

@@ -16,15 +16,15 @@ def train(data: str, pat_str: str, vocab_size: int, special_tokens: list[str]) -
         [bytes([b]) for b in word.encode('utf-8')] for word in re.findall(pat_str, data)
     ]
 
-    while len(ranks) < vocab_size:
+    while len(ranks) < vocab_size - len(special_tokens):
         stats = collections.Counter()
         for piece in words:
             for pair in zip(piece[:-1],piece[1:]):
                 stats[pair] += 1
-
-        #most_common_pair is a tuple of bytes, compare its count and lexicographic order
-        most_common_pair = max(stats, key=lambda x: (stats[x], x))
-        token_bytes = most_common_pair[0]
+        if len(stats) == 0:
+            break
+        most_common_pair = max(stats, key=lambda p: (stats[p], p))
+        token_bytes = most_common_pair[0] + most_common_pair[1]
         token = len(ranks)
         #Add the new token
         ranks[token_bytes] = token
@@ -45,12 +45,14 @@ def train(data: str, pat_str: str, vocab_size: int, special_tokens: list[str]) -
                 new_word.append(word[i])
             new_words.append(new_word)
         words = new_words
-
+    for token in special_tokens:
+        vocab[len(ranks)] = token.encode('utf-8')
+        ranks[token.encode('utf-8')] = len(ranks)
     return vocab, merges
 
-def bpe_train(input_path: str, vocab_size: int, special_tokens: list[str]):
+def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
     pattern = (
-
+        r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     )
     with open(input_path) as f:
         data = f.read()
