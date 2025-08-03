@@ -9,11 +9,12 @@ def train(data: str, pat_str: str, vocab_size: int, special_tokens: list[str]) -
     for i in range(2**8):
         ranks[bytes([i])] = i
         vocab[i] = bytes([i])
+    raw_words = re.findall(pat_str, data)
+    raw_words = [word[1] for word in raw_words if word not in special_tokens]
     #merges: list of tuples of bytes
     merges = []
-
     words: list[list[bytes]] = [
-        [bytes([b]) for b in word.encode('utf-8')] for word in re.findall(pat_str, data)
+        [bytes([b]) for b in word.encode('utf-8')] for word in raw_words if word != ''
     ]
 
     while len(ranks) < vocab_size - len(special_tokens):
@@ -54,6 +55,8 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
     pattern = (
         r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     )
+    excluded_patterns = '|'.join([re.escape(token) for token in special_tokens])
+    pattern = re.compile(f'({excluded_patterns})|({pattern})')
     with open(input_path) as f:
         data = f.read()
 
