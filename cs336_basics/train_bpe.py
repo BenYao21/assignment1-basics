@@ -93,12 +93,14 @@ def train_bpe(input_path: str, vocab_size: int, special_tokens: list[str]):
         word_counts_list = process_map(count_words_in_chunk, chunks, chunksize=1)
     
     # 3. Merge word counts from all chunks
+    #word_counts: defaultdict[tuple[bytes, ...], int]
     word_counts = defaultdict(int)
     for d in word_counts_list:
         for word, cnt in d.items():
             word_counts[word] += cnt
 
     # 4. Initial pair counts
+    #pair_counts: defaultdict[tuple[bytes, bytes], int]
     pair_counts = count_pairs(word_counts)
 
     # 5. Initialize vocab and merges
