@@ -8,22 +8,32 @@ def get_chunks(text: str) -> list[str]:
 
 def apply_merges(word_bytes: bytes, merge_set: set, vocab_to_idx: dict[bytes, int]) -> tuple[bytes, ...]:
     word_bytes = list(word_bytes)
+    
     while True:
         min_token_id = float('inf')
-        best_pair_id = -1
+        best_pair_idx = -1
         merged = None
+
         for i in range(len(word_bytes) - 1):
-            pair = tuple(word_bytes[i:i+2])
+            pair = (word_bytes[i], word_bytes[i + 1])
             if pair in merge_set:
                 combined = pair[0] + pair[1]
-                token_id = vocab_to_idx[combined]
+                token_id = vocab_to_idx.get(combined)
                 if token_id is not None and token_id < min_token_id:
                     min_token_id = token_id
-                    best_pair_id = i
-                    merged = pair
-        if best_pair_id == -1:
+                    best_pair_idx = i
+                    merged = combined
+
+        if best_pair_idx == -1:
             break
-        word_bytes = (word_bytes[:best_pair_id] + [vocab_to_idx[combined]] + word_bytes[best_pair_id+2:])
+
+        # Apply best merge
+        word_bytes = (
+            word_bytes[:best_pair_idx]
+            + [merged]
+            + word_bytes[best_pair_idx + 2:]
+        )
+
     return tuple(word_bytes)
 
 def encode_merged(text: str, merges: list, vocab_to_idx: dict[bytes, int]) -> list[int]:
@@ -31,16 +41,16 @@ def encode_merged(text: str, merges: list, vocab_to_idx: dict[bytes, int]) -> li
     tokens = []
     for word in word_list:
         word_bytes = word.encode("utf-8")
-        word_bytes = apply_merges(word_bytes, merges, vocab_to_idx)
-        tokens.extend(vocab_to_idx[i] for i in word_bytes)
+        merged_word_bytes = apply_merges(word_bytes, merges, vocab_to_idx)
+        tokens.extend(vocab_to_idx[i] for i in merged_word_bytes)
     return tokens
 
 class Tokenizer:
     def __init__(self, vocab: dict[int, bytes], merges: list[tuple[bytes, bytes]], special_tokens = None):
         self.vocab = vocab
         self.merges = merges
-        self.special_tokens = special_tokens
-        self.special_token_bytes = [i.encode("utf-8") for i in special_tokens]
+        self.special_tokens = special_tokens if special_tokens else []
+        self.special_token_bytes = [i.encode("utf-8") for i in self.special_tokens]
         self.vocab2idx = {v: k for k, v in vocab.items()}
 
         for st in self.special_token_bytes:
@@ -67,14 +77,14 @@ class Tokenizer:
         ]
         return cls(vocab=vocab, merges=merges, special_tokens=special_tokens)
     def encode(self, text: str) -> list[int]:
-        chunks = get_chunks(text, 1000)
+        chunks = get_chunks(text)
         tokens = []
         for chunk in chunks:
             if chunk in self.special_token_bytes:
                 tokens.append(self.vocab2idx[chunk])
             else:
                 # TODO: Implement this
-                tokens.extend()
+                tokens.extend(encode_merged(chunk, self.merges, self.vocab2idx))
         return tokens
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
         for text in iterable:
