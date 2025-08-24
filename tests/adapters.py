@@ -1,7 +1,9 @@
 from __future__ import annotations
 from cs336_basics.train_bpe import train_bpe
 from cs336_basics.tokenizer import Tokenizer
-
+from cs336_basics.linear import Linear
+from cs336_basics.embedding import Embedding
+from cs336_basics.rmsnorm import RMSNorm
 import os
 from typing import IO, Any, BinaryIO
 from collections.abc import Iterable
@@ -31,8 +33,16 @@ def run_linear(
     Returns:
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
-
-    raise NotImplementedError
+    # 1. 创建 Linear 模块实例
+    linear = Linear(d_in, d_out, device=weights.device, dtype=weights.dtype)
+    
+    # 2. 按照建议，使用 load_state_dict 加载权重
+    #    我们需要构建一个 state_dict，其中键 'weight' 对应我们在 Linear 类中定义的 self.weight
+    state_dict = {"weight": weights}
+    linear.load_state_dict(state_dict)
+    
+    # 3. 执行前向传播并返回结果
+    return linear(in_features)
 
 
 def run_embedding(
@@ -54,7 +64,10 @@ def run_embedding(
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
 
-    raise NotImplementedError
+    embedding = Embedding(vocab_size, d_model, device=weights.device, dtype=weights.dtype)
+    state_dict = {"weight": weights}
+    embedding.load_state_dict(state_dict)
+    return embedding(token_ids)
 
 
 def run_swiglu(
@@ -381,7 +394,10 @@ def run_rmsnorm(
         Float[Tensor,"... d_model"]: Tensor of with the same shape as `in_features` with the output of running
         RMSNorm of the `in_features`.
     """
-    raise NotImplementedError
+    rmsnorm = RMSNorm(d_model, eps, device=weights.device, dtype=weights.dtype)
+    state_dict = {"weight": weights}
+    rmsnorm.load_state_dict(state_dict)
+    return rmsnorm(in_features)
 
 
 def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
